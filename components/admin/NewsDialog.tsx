@@ -10,14 +10,6 @@ import {
 } from "@/lib/api";
 import RichTextEditor from "@/components/admin/RichTextEditor";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
-import type {
-  AIAction,
-  AIAssistResult,
-  TranslateResult,
-  SummarizeResult,
-  SeoResult,
-  ImproveResult,
-} from "@/types/ai-assist.types";
 import ConfirmDialog from "@/app/admin/ConfirmDialog";
 
 interface Props {
@@ -109,41 +101,6 @@ export default function NewsDialog({
       onOpenChange(false);
     }
   };
-
-  // AI-ийн үр дүнг зохих state рүү оруулна
-  function handleAIResult(action: AIAction, data: AIAssistResult): void {
-    switch (action) {
-      case "translate": {
-        const r = data as TranslateResult;
-        set("titleEn", r.title_en);
-        set("descEn", r.content_en);
-        setLang("en");
-        toast.success("Англи орчуулга бэлэн боллоо");
-        break;
-      }
-      case "improve": {
-        const r = data as ImproveResult;
-        if (lang === "mn") set("descMn", r.improved_content);
-        else set("descEn", r.improved_content);
-        toast.success("Найруулга сайжирлаа");
-        break;
-      }
-      case "summarize": {
-        const r = data as SummarizeResult;
-        toast.success("Хураангуй үүслээ", {
-          description: lang === "mn" ? r.summary_mn : r.summary_en,
-        });
-        break;
-      }
-      case "seo": {
-        const r = data as SeoResult;
-        toast.success("SEO meta үүслээ", {
-          description: r.meta_title,
-        });
-        break;
-      }
-    }
-  }
 
   const save = async () => {
     if (!f.titleEn.trim() && !f.titleMn.trim()) {

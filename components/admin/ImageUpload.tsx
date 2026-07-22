@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { UploadCloud, X, Loader2, GripVertical, Star } from "lucide-react";
 import { toast } from "sonner";
+import { getToken } from "@/lib/api";
 
 interface Props {
   value: any; // string (single) эсвэл string[] (multiple)
@@ -10,14 +11,22 @@ interface Props {
   multiple?: boolean;
 }
 
-// Mock: файлыг base64 data URL болгоно. Дараа нь энэ функцийг жинхэнэ upload-аар сольж болно.
-const toDataUrl = (file: File) =>
-  new Promise<string>((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result as string);
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
+const API_BASE = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000").replace(/\/$/, "");
+
+async function uploadFile(file: File): Promise<string> {
+  const fd = new FormData();
+  fd.append("file", file);
+
+  const res = await fetch(`${API_BASE}/api/upload`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${getToken()}` },
+    body: fd,
   });
+
+  if (!res.ok) throw new Error("Upload амжилтгvй боллоо");
+  const data = await res.json();
+  return data.url;
+}
 
 export default function ImageUpload({ value, onChange, multiple = false }: Props) {
   const [busy, setBusy] = useState(false);
@@ -31,11 +40,11 @@ export default function ImageUpload({ value, onChange, multiple = false }: Props
     if (!files || !files.length) return;
     setBusy(true);
     try {
-      const dataUrls = await Promise.all(Array.from(files).map(toDataUrl));
-      if (multiple) onChange([...(value || []), ...dataUrls]);
-      else onChange(dataUrls[0]);
-    } catch {
-      toast.error("Зураг уншихад алдаа гарлаа");
+      const uploaded = await Promise.all(Array.from(files).map(uploadFile));
+      if (multiple) onChange([...(value || []), ...uploaded]);
+      else onChange(uploaded[0]);
+    } catch (e: any) {
+      toast.error(e.message || "Зураг upload хийхэд алдаа гарлаа");
     } finally {
       setBusy(false);
       if (inputRef.current) inputRef.current.value = "";
@@ -154,7 +163,7 @@ export default function ImageUpload({ value, onChange, multiple = false }: Props
               <UploadCloud className="h-5 w-5" />
             )}
             <span className="text-[10px] uppercase tracking-[0.15em]">
-              {busy ? "Reading" : "Add"}
+              {busy ? "Uploading" : "Add"}
             </span>
           </button>
         )}

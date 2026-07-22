@@ -1,8 +1,7 @@
 // Set NEXT_PUBLIC_API_URL in .env.local (e.g. http://localhost:4000)
 
-const API_BASE = (
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000"
-).replace(/\/$/, "");
+const API_BASE =
+  (process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000").replace(/\/$/, "");
 
 const TOKEN_KEY = "bp_admin_token";
 

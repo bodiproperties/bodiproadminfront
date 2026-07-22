@@ -10,6 +10,8 @@ import StarterKit from "@tiptap/starter-kit";
 import Image from "@tiptap/extension-image";
 import Youtube from "@tiptap/extension-youtube";
 import { useEffect, useRef } from "react";
+import { toast } from "sonner";
+import { getToken } from "@/lib/api";
 import {
   Bold,
   Italic,
@@ -26,12 +28,17 @@ import {
   Youtube as YoutubeIcon,
   X,
   GripVertical,
+  Loader2,
 } from "lucide-react";
 
 interface Props {
   value: string;
   onChange: (html: string) => void;
 }
+
+const API_BASE = (
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000"
+).replace(/\/$/, "");
 
 /* Зургийн node view: hover устгах + чирэх бариул */
 function ImageNodeView({ node, deleteNode, selected }: any) {
@@ -88,7 +95,7 @@ function YoutubeNodeView({ node, deleteNode, selected }: any) {
   const embed = toEmbedUrl(node.attrs.src || "");
   return (
     <NodeViewWrapper
-      className={`group relative my-4 w-full  overflow-hidden rounded-lg ${
+      className={`group relative my-4 w-full overflow-hidden rounded-lg ${
         selected ? "ring-2 ring-neutral-900 ring-offset-2" : ""
       }`}
     >
@@ -109,7 +116,6 @@ function YoutubeNodeView({ node, deleteNode, selected }: any) {
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
           allowFullScreen
         />
-        {/* editor дотор дарахад play биш, node сонгогдоно */}
         <div
           className="absolute inset-0 z-10"
           contentEditable={false}
@@ -126,7 +132,7 @@ const CustomYoutube = Youtube.extend({
   },
 });
 
-/* Зургийг canvas-аар шахаж base64 болгоно */
+/* Зургийг canvas-аар шахаж base64 болгоно (upload хийхийн өмнөх завсрын алхам) */
 function compressImage(
   file: File,
   maxW = 1600,
@@ -158,9 +164,30 @@ function compressImage(
   });
 }
 
+/* Base64 → Blob хөрвүүлээд backend-рvv upload хийж, URL буцаана */
+async function uploadDataUrl(
+  dataUrl: string,
+  filename: string,
+): Promise<string> {
+  const blob = await (await fetch(dataUrl)).blob();
+  const fd = new FormData();
+  fd.append("file", blob, filename);
+
+  const res = await fetch(`${API_BASE}/api/upload`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${getToken()}` },
+    body: fd,
+  });
+
+  if (!res.ok) throw new Error("Upload амжилтгvй боллоо");
+  const data = await res.json();
+  return data.url;
+}
+
 export default function RichTextEditor({ value, onChange }: Props) {
   const imgInputRef = useRef<HTMLInputElement>(null);
   const lastEmitted = useRef(value);
+  const uploadingCount = useRef(0);
 
   const editor = useEditor({
     immediatelyRender: false,
@@ -201,11 +228,20 @@ export default function RichTextEditor({ value, onChange }: Props) {
   const insertImages = async (files: FileList | null) => {
     if (!files?.length) return;
     for (const file of Array.from(files)) {
+      uploadingCount.current += 1;
       try {
         const dataUrl = await compressImage(file);
-        editor.chain().focus().setImage({ src: dataUrl }).run();
-      } catch {
-        /* нэг зураг унавал үлдсэнийг үргэлжлүүлнэ */
+        const url = await uploadDataUrl(dataUrl, file.name);
+        editor
+          .chain()
+          .focus()
+          .setImage({ src: url })
+          .createParagraphNear()
+          .run();
+      } catch (e: any) {
+        toast.error(e.message || "Зураг upload хийхэд алдаа гарлаа");
+      } finally {
+        uploadingCount.current -= 1;
       }
     }
     if (imgInputRef.current) imgInputRef.current.value = "";
