@@ -16,7 +16,7 @@ import Underline from "@tiptap/extension-underline";
 import TableRow from "@tiptap/extension-table-row";
 import TableCell from "@tiptap/extension-table-cell";
 import TableHeader from "@tiptap/extension-table-header";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { getToken } from "@/lib/api";
 import {
@@ -207,6 +207,7 @@ export default function RichTextEditor({ value, onChange }: Props) {
   const imgInputRef = useRef<HTMLInputElement>(null);
   const lastEmitted = useRef(value);
   const uploadingCount = useRef(0);
+  const [, forceToolbarUpdate] = useState(0); // ← шинээр нэмэгдэв
 
   const editor = useEditor({
     immediatelyRender: false,
@@ -245,6 +246,13 @@ export default function RichTextEditor({ value, onChange }: Props) {
       const html = editor.getHTML();
       lastEmitted.current = html;
       onChange(html);
+    },
+
+    onSelectionUpdate: () => {
+      forceToolbarUpdate((n) => n + 1);
+    },
+    onTransaction: () => {
+      forceToolbarUpdate((n) => n + 1);
     },
   });
 
@@ -339,6 +347,7 @@ export default function RichTextEditor({ value, onChange }: Props) {
   }) => (
     <button
       type="button"
+      onMouseDown={(e) => e.preventDefault()}
       onClick={onClick}
       disabled={disabled}
       aria-label={label}
