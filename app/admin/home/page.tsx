@@ -261,13 +261,13 @@ export default function AdminHome() {
       <div className="mt-12 flex flex-wrap gap-3">
         <Link
           href="/admin/news"
-          className="bg-neutral-900 px-8 py-3.5 text-[11px] uppercase tracking-[0.25em] text-white transition-colors hover:bg-neutral-800"
+          className="bg-neutral-900 px-8 py-3.5 text-[11px] uppercase tracking-[0.25em] text-white transition-colors hover:bg-[#F17B2C]"
         >
           Мэдээ удирдах
         </Link>
         <Link
           href="/admin/projects"
-          className="border border-neutral-900 px-8 py-3.5 text-[11px] uppercase tracking-[0.25em] text-neutral-900 transition-colors hover:bg-neutral-900 hover:text-white"
+          className="border border-neutral-900 px-8 py-3.5 text-[11px] uppercase tracking-[0.25em] text-neutral-900 transition-colors hover:bg-[#F17B2C] hover:text-white"
         >
           Төсөл удирдах
         </Link>

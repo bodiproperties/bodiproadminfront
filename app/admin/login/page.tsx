@@ -70,19 +70,19 @@ export default function LoginPage() {
           </div>
 
           <p className="text-[10px] uppercase tracking-[0.3em] text-neutral-400">
-            Studio Admin
+            Админ нэвтрэх
           </p>
           <h1 className="mt-3 text-3xl font-extralight tracking-tight text-neutral-900">
-            Sign in
+            Нэвтрэх
           </h1>
           <p className="mt-3 text-sm text-neutral-500">
-            Manage projects, news and home page images.
+            Бодь Пропертийз админ удирдлагын систем v2
           </p>
 
           <div className="mt-10 space-y-7">
             <div>
               <label className="block text-[10px] uppercase tracking-[0.25em] text-neutral-400">
-                Email
+                Имайл
               </label>
               <input
                 type="email"
@@ -95,7 +95,7 @@ export default function LoginPage() {
 
             <div>
               <label className="block text-[10px] uppercase tracking-[0.25em] text-neutral-400">
-                Password
+                Нууц үг
               </label>
               <input
                 type="password"
@@ -111,9 +111,9 @@ export default function LoginPage() {
             <button
               onClick={submit}
               disabled={loading}
-              className="w-full bg-neutral-900 py-4 text-xs uppercase tracking-[0.25em] text-white transition-colors hover:bg-neutral-800 disabled:opacity-50"
+              className="w-full bg-neutral-900 py-4 text-xs uppercase tracking-[0.25em] text-white transition-colors hover:bg-[#F17B2C] disabled:opacity-50 cursor-pointer"
             >
-              {loading ? "Signing in…" : "Sign in"}
+              {loading ? "Уншиж байна…" : "Нэвтрэх"}
             </button>
           </div>
         </div>

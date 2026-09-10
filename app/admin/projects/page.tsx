@@ -102,7 +102,7 @@ export default function ProjectsPage() {
             setEditing(null);
             setOpen(true);
           }}
-          className="inline-flex items-center gap-2 bg-neutral-900 px-5 py-2.5 text-[11px] uppercase tracking-[0.2em] text-white transition-colors hover:bg-neutral-600 cursor-pointer hover:shadow-md hover:shadow-neutral-900/30"
+          className="inline-flex items-center gap-2 bg-neutral-900 px-5 py-2.5 text-[11px] uppercase tracking-[0.2em] text-white transition-colors hover:bg-[#F17B2C] cursor-pointer hover:shadow-md hover:shadow-neutral-900/30"
         >
           <Plus className="h-4 w-4" /> Шинэ төслийн мэдээ
         </button>

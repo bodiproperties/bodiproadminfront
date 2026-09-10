@@ -120,11 +120,11 @@ export default function NewsPage() {
     <div>
       <div className="mb-8 flex items-end justify-between">
         <div>
-          <p className="text-[10px] uppercase tracking-[0.3em] text-neutral-400">
-            Manage
+          <p className="text-[10px] uppercase tracking-[0.3em] text-[#F58220]">
+            Мэдээ
           </p>
           <h1 className="mt-2 text-3xl font-extralight tracking-tight text-neutral-900">
-            News
+            Мэдээлэл
           </h1>
         </div>
         <button
@@ -132,7 +132,7 @@ export default function NewsPage() {
             setEditing(null);
             setOpen(true);
           }}
-          className="inline-flex cursor-pointer items-center gap-2 bg-neutral-900 px-5 py-2.5 text-[11px] uppercase tracking-[0.2em] text-white transition-colors hover:bg-neutral-500"
+          className="inline-flex cursor-pointer items-center gap-2 bg-neutral-900 px-5 py-2.5 text-[11px] uppercase tracking-[0.2em] text-white transition-colors hover:bg-[#F17B2C]"
         >
           <Plus className="h-4 w-4" /> Шинэ мэдээ
         </button>

@@ -190,10 +190,10 @@ export default function ProjectDialog({
           {/* Header */}
           <div className="mb-6">
             <p className="text-[10px] uppercase tracking-[0.35em] text-[#F58220]">
-              Projects
+              Төсөл
             </p>
             <DialogTitle className="mt-3 text-3xl font-extralight tracking-tight text-neutral-900">
-              {initial ? "Project засах" : "Шинэ project"}
+              {initial ? "Төслийн мэдээллийг засах" : "Шинэ төслийн мэдээ"}
             </DialogTitle>
           </div>
 
@@ -208,7 +208,7 @@ export default function ProjectDialog({
                   key={l}
                   type="button"
                   onClick={() => setLang(l)}
-                  className={`flex-1 px-4 py-2.5 text-[11px] uppercase tracking-[0.2em] transition-colors ${
+                  className={`flex-1 px-4 py-2.5 text-[11px] uppercase tracking-[0.2em] transition-colors cursor-pointer ${
                     i > 0 ? "border-l border-neutral-300" : ""
                   } ${
                     lang === l
@@ -289,7 +289,7 @@ export default function ProjectDialog({
                 type="button"
                 disabled={coverUploading}
                 onClick={() => coverInputRef.current?.click()}
-                className="inline-flex items-center gap-2 border border-neutral-300 px-4 py-2 text-[11px] uppercase tracking-[0.2em] text-neutral-600 transition-colors hover:border-neutral-900 hover:text-neutral-900 disabled:opacity-50"
+                className="inline-flex items-center gap-2 border border-neutral-300 px-4 py-2 text-[11px] uppercase tracking-[0.2em] text-neutral-600 transition-colors hover:border-[#F17B2C] hover:text-white hover:bg-[#F17B2C] disabled:opacity-50 cursor-pointer"
               >
                 {coverUploading ? (
                   <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -392,7 +392,7 @@ export default function ProjectDialog({
               <button
                 type="button"
                 onClick={addService}
-                className="shrink-0 border border-neutral-300 px-4 text-[11px] uppercase tracking-[0.2em] text-neutral-600 transition-colors hover:border-neutral-900 hover:text-neutral-900"
+                className="shrink-0 border border-neutral-300 px-4 text-[11px] uppercase tracking-[0.2em] text-neutral-600 transition-colors hover:border-[#F17B2C] hover:text-white hover:bg-[#F17B2C] cursor-pointer"
               >
                 Нэмэх
               </button>
@@ -424,12 +424,12 @@ export default function ProjectDialog({
                       key={opt.value}
                       type="button"
                       onClick={() => set("publishStatus", opt.value)}
-                      className={`flex-1 px-3 py-2.5 text-[11px] uppercase tracking-[0.15em] transition-colors ${
+                      className={`flex-1 px-3 py-2.5 text-[11px] uppercase tracking-[0.15em] transition-colors cursor-pointer ${
                         i > 0 ? "border-l border-neutral-300" : ""
                       } ${
                         active
                           ? "bg-neutral-900 text-white"
-                          : "bg-white text-neutral-500 hover:bg-neutral-50 hover:text-neutral-900"
+                          : "bg-white text-neutral-500 hover:bg-[#F17B2C] hover:text-white"
                       }`}
                     >
                       {opt.label}
@@ -448,7 +448,7 @@ export default function ProjectDialog({
             <button
               type="button"
               onClick={requestClose}
-              className="px-6 py-3.5 text-[11px] uppercase tracking-[0.25em] text-neutral-500 transition-colors hover:text-neutral-900"
+              className="px-6 py-3.5 text-[11px] uppercase tracking-[0.25em] text-neutral-500 transition-colors hover:text-[#F17B2C] cursor-pointer"
             >
               Болих
             </button>
@@ -456,7 +456,7 @@ export default function ProjectDialog({
               type="button"
               onClick={save}
               disabled={saving}
-              className="bg-neutral-900 px-8 py-3.5 text-[11px] uppercase tracking-[0.25em] text-white transition-colors hover:bg-neutral-800 disabled:opacity-50"
+              className="bg-neutral-900 px-8 py-3.5 text-[11px] uppercase tracking-[0.25em] text-white transition-colors hover:bg-[#F17B2C] disabled:opacity-50 cursor-pointer"
             >
               {saving ? "Хадгалж байна…" : "Хадгалах"}
             </button>

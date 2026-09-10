@@ -143,13 +143,13 @@ export default function NewsDialog({
           {/* Header */}
           <div className="mb-8">
             <p className="text-[10px] uppercase tracking-[0.35em] text-[#F58220]">
-              Journal
+              Нийтлэл
             </p>
             <DialogTitle className="mt-3 text-3xl font-extralight tracking-tight text-neutral-900">
               {initial ? "Мэдээ засах" : "Шинэ мэдээ"}
             </DialogTitle>
             <p className="mt-2 text-sm text-neutral-500">
-              Гарчиг болон агуулгыг хоёр хэл дээр бөглөнө.
+              Гарчиг болон агуулгыг сонгосон хэл дээр бөглөнө.
             </p>
           </div>
 
@@ -233,12 +233,12 @@ export default function NewsDialog({
                       key={opt.value}
                       type="button"
                       onClick={() => set("status", opt.value)}
-                      className={`flex-1 px-3 py-2.5 text-[11px] uppercase tracking-[0.15em] transition-colors ${
+                      className={`flex-1 px-3 py-2.5 text-[11px] uppercase tracking-[0.15em] transition-colors cursor-pointer ${
                         i > 0 ? "border-l border-neutral-300" : ""
                       } ${
                         activeSel
                           ? "bg-neutral-900 text-white"
-                          : "bg-white text-neutral-500 hover:bg-neutral-50 hover:text-neutral-900"
+                          : "bg-white text-neutral-500 hover:bg-[#F17B2C] hover:text-white"
                       }`}
                     >
                       {opt.label}
@@ -257,7 +257,7 @@ export default function NewsDialog({
             <button
               type="button"
               onClick={requestClose}
-              className="px-6 py-3.5 text-[11px] uppercase tracking-[0.25em] text-neutral-500 transition-colors hover:text-neutral-900"
+              className="px-6 py-3.5 text-[11px] uppercase tracking-[0.25em] text-neutral-500 transition-colors hover:text-[#F17B2C] cursor-pointer"
             >
               Болих
             </button>
@@ -265,7 +265,7 @@ export default function NewsDialog({
               type="button"
               onClick={save}
               disabled={saving}
-              className="bg-neutral-900 px-8 py-3.5 text-[11px] uppercase tracking-[0.25em] text-white transition-colors hover:bg-neutral-800 disabled:opacity-50"
+              className="bg-neutral-900 px-8 py-3.5 text-[11px] uppercase tracking-[0.25em] text-white transition-colors hover:bg-[#F17B2C] disabled:opacity-50 cursor-pointer"
             >
               {saving ? "Хадгалж байна…" : "Хадгалах"}
             </button>
