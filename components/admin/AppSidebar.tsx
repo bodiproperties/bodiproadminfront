@@ -48,18 +48,13 @@ const NAV: NavGroup[] = [
     items: [
       {
         href: "/admin/projects",
-        label: "Төслүүд",
+        label: "Төслийн мэдээ",
         icon: Building2,
       },
       {
         href: "/admin/news",
-        label: "Мэдээ",
+        label: "Мэдээ мэдээлэл",
         icon: Newspaper,
-      },
-      {
-        href: "/admin/home",
-        label: "Нүүр хуудас",
-        icon: ImageIcon,
       },
     ],
   },

@@ -30,7 +30,9 @@ export default function ConfirmDialog({
         <div className="flex items-start gap-4">
           <span
             className={`mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${
-              danger ? "bg-red-50 text-red-600" : "bg-[#F58220]/10 text-[#F58220]"
+              danger
+                ? "bg-red-50 text-red-600"
+                : "bg-[#F58220]/10 text-[#F58220]"
             }`}
           >
             <AlertTriangle className="h-5 w-5" />
@@ -52,7 +54,7 @@ export default function ConfirmDialog({
           <button
             type="button"
             onClick={() => onOpenChange(false)}
-            className="px-6 py-3 text-[11px] uppercase tracking-[0.25em] text-neutral-500 transition-colors hover:text-neutral-900"
+            className="px-6 py-3 text-[11px] uppercase tracking-[0.25em] text-neutral-500 transition-colors hover:text-neutral-900 cursor-pointer"
           >
             {cancelText}
           </button>
@@ -62,7 +64,7 @@ export default function ConfirmDialog({
               onConfirm();
               onOpenChange(false);
             }}
-            className={`px-7 py-3 text-[11px] uppercase tracking-[0.25em] text-white transition-colors ${
+            className={`px-7 py-3 text-[11px] uppercase tracking-[0.25em] text-white transition-colors cursor-pointer ${
               danger
                 ? "bg-red-600 hover:bg-red-700"
                 : "bg-neutral-900 hover:bg-neutral-800"

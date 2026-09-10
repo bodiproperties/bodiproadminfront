@@ -51,9 +51,12 @@ export async function login(email: string, password: string) {
 
 /* projects */
 export const getProjects = () => request("/api/projects");
-export const createProject = (b: any) =>
+export const getProjectsAdmin = () => request("/api/projects", {}, true);
+export const getProject = (id: number | string) =>
+  request(`/api/projects/${id}`);
+export const createProject = (b: ProjectPayload) =>
   request("/api/projects", { method: "POST", body: JSON.stringify(b) }, true);
-export const updateProject = (id: number, b: any) =>
+export const updateProject = (id: number, b: Partial<ProjectPayload>) =>
   request(
     `/api/projects/${id}`,
     { method: "PUT", body: JSON.stringify(b) },
@@ -61,8 +64,23 @@ export const updateProject = (id: number, b: any) =>
   );
 export const deleteProject = (id: number) =>
   request(`/api/projects/${id}`, { method: "DELETE" }, true);
+export const restoreProject = (id: number) =>
+  request(`/api/projects/${id}/restore`, { method: "POST" }, true);
 
-/* news (admin list includes drafts via token) */
+/* single image upload (cover / gallery items) */
+export async function uploadImage(file: File): Promise<string> {
+  const fd = new FormData();
+  fd.append("file", file);
+  const res = await fetch(`${API_BASE}/api/upload`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${getToken()}` },
+    body: fd,
+  });
+  if (!res.ok) throw new Error("Зураг upload хийхэд алдаа гарлаа");
+  const data = await res.json();
+  return data.url as string;
+}
+
 /* news (admin list includes drafts via token) */
 export async function getNewsAdmin(): Promise<NewsItem[]> {
   return request("/api/news", {}, true); // admin token optionalAuth-аар draft-ууд ч ирнэ
@@ -96,6 +114,17 @@ export async function restoreNews(id: string): Promise<NewsItem> {
   return request(`/api/news/${id}/restore`, { method: "POST" }, true);
 }
 
+export async function setNewsStatus(
+  id: string,
+  status: "draft" | "published" | "hidden",
+): Promise<NewsItem> {
+  return request(
+    `/api/news/${id}`,
+    { method: "PUT", body: JSON.stringify({ status }) },
+    true,
+  );
+}
+
 /* home images */
 export const getHomeImages = () => request("/api/home-images");
 export const upsertHomeImage = (b: any) =>
@@ -121,12 +150,31 @@ export type Project = {
   location: string;
   year: string;
   image: string;
-  gallery: string[];
-  description: string;
-  longDescription: string;
+  description: { en: string; mn: string };
   detail: { client: string; area: string; status: string; services: string[] };
   sortOrder?: number;
+  status: "draft" | "published" | "hidden";
+  publishedAt: string | null;
 };
+
+export interface ProjectPayload {
+  title: string;
+  type: string;
+  location: string;
+  year: string;
+  image: string;
+  descriptionEn?: string;
+  descriptionMn?: string;
+  detail?: {
+    client: string;
+    area: string;
+    status: string;
+    services: string[];
+  };
+  sortOrder?: number;
+  status?: "draft" | "published" | "hidden";
+  publishedAt?: string | null;
+}
 
 export interface NewsItem {
   id: string;
@@ -158,14 +206,3 @@ export type HomeImage = {
   url: string;
   sortOrder: number;
 };
-
-export async function setNewsStatus(
-  id: string,
-  status: "draft" | "published" | "hidden",
-): Promise<NewsItem> {
-  return request(
-    `/api/news/${id}`,
-    { method: "PUT", body: JSON.stringify({ status }) },
-    true,
-  );
-}

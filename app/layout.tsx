@@ -1,5 +1,6 @@
 import "./globals.css";
 import type { Metadata } from "next";
+import IdleLogoutProvider from "@/components/admin/IdleLogoutProvider";
 
 export const metadata: Metadata = {
   title: "Bodi Properties — Admin Controller",
@@ -23,7 +24,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        <IdleLogoutProvider>{children}</IdleLogoutProvider>
+      </body>
     </html>
   );
 }

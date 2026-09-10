@@ -9,16 +9,25 @@ import {
 import StarterKit from "@tiptap/starter-kit";
 import Image from "@tiptap/extension-image";
 import Youtube from "@tiptap/extension-youtube";
+import Link from "@tiptap/extension-link";
+import TextAlign from "@tiptap/extension-text-align";
+import Highlight from "@tiptap/extension-highlight";
+import Underline from "@tiptap/extension-underline";
+import TableRow from "@tiptap/extension-table-row";
+import TableCell from "@tiptap/extension-table-cell";
+import TableHeader from "@tiptap/extension-table-header";
 import { useEffect, useRef } from "react";
 import { toast } from "sonner";
 import { getToken } from "@/lib/api";
 import {
   Bold,
   Italic,
+  Underline as UnderlineIcon,
   Strikethrough,
   List,
   ListOrdered,
   Quote,
+  Heading1,
   Heading2,
   Heading3,
   Undo,
@@ -28,7 +37,17 @@ import {
   Youtube as YoutubeIcon,
   X,
   GripVertical,
-  Loader2,
+  Link as LinkIcon,
+  Unlink,
+  AlignLeft,
+  AlignCenter,
+  AlignRight,
+  Highlighter,
+  Code,
+  Table as TableIcon,
+  Trash2,
+  Rows,
+  Columns,
 } from "lucide-react";
 
 interface Props {
@@ -192,13 +211,28 @@ export default function RichTextEditor({ value, onChange }: Props) {
   const editor = useEditor({
     immediatelyRender: false,
     extensions: [
-      StarterKit.configure({ heading: { levels: [2, 3] } }),
+      StarterKit.configure({ heading: { levels: [1, 2, 3] } }),
       CustomImage,
       CustomYoutube.configure({
         nocookie: true,
         controls: true,
         HTMLAttributes: { class: "rounded-lg" },
       }),
+      Underline,
+      Link.configure({
+        openOnClick: false,
+        autolink: true,
+        HTMLAttributes: {
+          class: "text-[#F58220] underline underline-offset-2",
+        },
+      }),
+      TextAlign.configure({
+        types: ["heading", "paragraph"],
+      }),
+      Highlight.configure({ multicolor: false }),
+      TableRow,
+      TableHeader,
+      TableCell,
     ],
     content: value || "",
     editorProps: {
@@ -269,6 +303,27 @@ export default function RichTextEditor({ value, onChange }: Props) {
       .run();
   };
 
+  const setLink = () => {
+    const prev = editor.getAttributes("link").href as string | undefined;
+    const url = window.prompt("Холбоосын URL:", prev || "https://");
+    if (url === null) return;
+    if (url === "") {
+      editor.chain().focus().extendMarkRange("link").unsetLink().run();
+      return;
+    }
+    editor.chain().focus().extendMarkRange("link").setLink({ href: url }).run();
+  };
+
+  const insertTable = () => {
+    editor
+      .chain()
+      .focus()
+      .insertTable({ rows: 3, cols: 3, withHeaderRow: true })
+      .run();
+  };
+
+  const inTable = editor.isActive("table");
+
   const Btn = ({
     onClick,
     active,
@@ -303,6 +358,15 @@ export default function RichTextEditor({ value, onChange }: Props) {
   return (
     <div className="rounded-lg border border-neutral-300 bg-white transition-colors focus-within:border-neutral-900">
       <div className="sticky top-0 z-20 flex flex-wrap items-center gap-0.5 rounded-t-lg border-b border-neutral-200 bg-neutral-50/95 px-2 py-1.5 backdrop-blur supports-[backdrop-filter]:bg-neutral-50/80">
+        <Btn
+          label="Гарчиг 1"
+          onClick={() =>
+            editor.chain().focus().toggleHeading({ level: 1 }).run()
+          }
+          active={editor.isActive("heading", { level: 1 })}
+        >
+          <Heading1 className="h-4 w-4" />
+        </Btn>
         <Btn
           label="Гарчиг 2"
           onClick={() =>
@@ -339,11 +403,56 @@ export default function RichTextEditor({ value, onChange }: Props) {
           <Italic className="h-4 w-4" />
         </Btn>
         <Btn
+          label="Underline"
+          onClick={() => editor.chain().focus().toggleUnderline().run()}
+          active={editor.isActive("underline")}
+        >
+          <UnderlineIcon className="h-4 w-4" />
+        </Btn>
+        <Btn
           label="Strike"
           onClick={() => editor.chain().focus().toggleStrike().run()}
           active={editor.isActive("strike")}
         >
           <Strikethrough className="h-4 w-4" />
+        </Btn>
+        <Btn
+          label="Тэмдэглэгээ будаг"
+          onClick={() => editor.chain().focus().toggleHighlight().run()}
+          active={editor.isActive("highlight")}
+        >
+          <Highlighter className="h-4 w-4" />
+        </Btn>
+        <Btn
+          label="Код"
+          onClick={() => editor.chain().focus().toggleCodeBlock().run()}
+          active={editor.isActive("codeBlock")}
+        >
+          <Code className="h-4 w-4" />
+        </Btn>
+
+        <Sep />
+
+        <Btn
+          label="Зүүн тийш"
+          onClick={() => editor.chain().focus().setTextAlign("left").run()}
+          active={editor.isActive({ textAlign: "left" })}
+        >
+          <AlignLeft className="h-4 w-4" />
+        </Btn>
+        <Btn
+          label="Төвд"
+          onClick={() => editor.chain().focus().setTextAlign("center").run()}
+          active={editor.isActive({ textAlign: "center" })}
+        >
+          <AlignCenter className="h-4 w-4" />
+        </Btn>
+        <Btn
+          label="Баруун тийш"
+          onClick={() => editor.chain().focus().setTextAlign("right").run()}
+          active={editor.isActive({ textAlign: "right" })}
+        >
+          <AlignRight className="h-4 w-4" />
         </Btn>
 
         <Sep />
@@ -378,12 +487,48 @@ export default function RichTextEditor({ value, onChange }: Props) {
 
         <Sep />
 
+        <Btn label="Холбоос" onClick={setLink} active={editor.isActive("link")}>
+          <LinkIcon className="h-4 w-4" />
+        </Btn>
+        <Btn
+          label="Холбоос устгах"
+          onClick={() => editor.chain().focus().unsetLink().run()}
+          disabled={!editor.isActive("link")}
+        >
+          <Unlink className="h-4 w-4" />
+        </Btn>
+
+        <Sep />
+
         <Btn label="Зураг оруулах" onClick={() => imgInputRef.current?.click()}>
           <ImagePlus className="h-4 w-4" />
         </Btn>
         <Btn label="YouTube видео" onClick={addYoutube}>
           <YoutubeIcon className="h-4 w-4" />
         </Btn>
+        {inTable && (
+          <>
+            <Sep />
+            <Btn
+              label="Мөр нэмэх"
+              onClick={() => editor.chain().focus().addRowAfter().run()}
+            >
+              <Rows className="h-4 w-4" />
+            </Btn>
+            <Btn
+              label="Багана нэмэх"
+              onClick={() => editor.chain().focus().addColumnAfter().run()}
+            >
+              <Columns className="h-4 w-4" />
+            </Btn>
+            <Btn
+              label="Хүснэгт устгах"
+              onClick={() => editor.chain().focus().deleteTable().run()}
+            >
+              <Trash2 className="h-4 w-4" />
+            </Btn>
+          </>
+        )}
 
         <Sep />
 

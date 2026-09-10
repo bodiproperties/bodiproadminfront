@@ -6,7 +6,11 @@ import { isAuthed } from "@/lib/api";
 import AppSidebar from "@/components/admin/AppSidebar";
 import { Toaster } from "@/components/ui/sonner";
 
-export default function AdminLayout({ children }: { children: React.ReactNode }) {
+export default function AdminLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const pathname = usePathname();
   const router = useRouter();
   const isLogin = pathname === "/admin/login";

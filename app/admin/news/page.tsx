@@ -132,7 +132,7 @@ export default function NewsPage() {
             setEditing(null);
             setOpen(true);
           }}
-          className="inline-flex cursor-pointer items-center gap-2 bg-neutral-900 px-5 py-2.5 text-[11px] uppercase tracking-[0.2em] text-white transition-colors hover:bg-neutral-800"
+          className="inline-flex cursor-pointer items-center gap-2 bg-neutral-900 px-5 py-2.5 text-[11px] uppercase tracking-[0.2em] text-white transition-colors hover:bg-neutral-500"
         >
           <Plus className="h-4 w-4" /> Шинэ мэдээ
         </button>
