@@ -6,7 +6,7 @@ import { clearToken, isAuthed } from "@/lib/api";
 
 const IDLE_LIMIT_MS = 15 * 60 * 1000; // 15 минут
 const WARNING_BEFORE_MS = 60 * 1000; // 1 минутын өмнө сануулга харуулна
-const LOGIN_PATH = "/login"; // өөрийн login route-той тааруулж солино уу
+const LOGIN_PATH = "/admin/login"; // өөрийн login route-той тааруулж солино уу
 
 const ACTIVITY_EVENTS = [
   "mousedown",
