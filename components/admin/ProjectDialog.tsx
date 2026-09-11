@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { X, ImagePlus, Loader2 } from "lucide-react";
+import { X, ImagePlus, Loader2, AlertCircle } from "lucide-react";
 import {
   createProject,
   updateProject,
@@ -53,10 +53,21 @@ const empty = {
   publishedAt: "",
 };
 
+type FieldErrors = {
+  title?: string;
+  type?: string;
+  location?: string;
+  year?: string;
+  image?: string;
+};
+
 const inputCls =
   "w-full border-0 border-b border-neutral-300 bg-transparent py-2 text-sm text-neutral-900 placeholder:text-neutral-300 transition-colors focus:border-neutral-900 focus:outline-none";
+const inputErrorCls =
+  "w-full border-0 border-b-2 border-red-500 bg-red-50/40 py-2 text-sm text-neutral-900 placeholder:text-neutral-300 transition-colors focus:border-red-600 focus:outline-none";
 const labelCls =
   "block text-[10px] uppercase tracking-[0.25em] text-neutral-400 mb-2";
+const errorTextCls = "mt-1.5 text-xs text-red-600";
 
 export default function ProjectDialog({
   open,
@@ -71,13 +82,24 @@ export default function ProjectDialog({
   const [lang, setLang] = useState<"en" | "mn">("mn");
   const [serviceInput, setServiceInput] = useState("");
   const [coverUploading, setCoverUploading] = useState(false);
+  const [errors, setErrors] = useState<FieldErrors>({});
 
   const coverInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!open) return;
-    setLang("mn");
     setServiceInput("");
+    setErrors({});
+
+    if (initial) {
+      const hasMn = !!initial.description?.mn;
+      const hasEn = !!initial.description?.en;
+      if (hasMn && !hasEn) setLang("mn");
+      else if (hasEn && !hasMn) setLang("en");
+      else setLang("mn");
+    } else {
+      setLang("mn");
+    }
 
     const next = initial
       ? {
@@ -101,8 +123,12 @@ export default function ProjectDialog({
     setBaseline(JSON.stringify(next));
   }, [open, initial]);
 
-  const set = <K extends keyof typeof empty>(k: K, v: (typeof empty)[K]) =>
+  const set = <K extends keyof typeof empty>(k: K, v: (typeof empty)[K]) => {
     setF((p) => ({ ...p, [k]: v }));
+    if (k in errors && (errors as any)[k]) {
+      setErrors((e) => ({ ...e, [k]: undefined }));
+    }
+  };
 
   const isDirty = () => JSON.stringify(f) !== baseline;
 
@@ -137,20 +163,26 @@ export default function ProjectDialog({
       f.services.filter((s) => s !== v),
     );
 
+  const validate = (): FieldErrors => {
+    const next: FieldErrors = {};
+    if (!f.title.trim()) next.title = "Гарчиг заавал бөглөнө үү";
+    if (!f.type.trim()) next.type = "Төрөл заавал бөглөнө үү";
+    if (!f.location.trim()) next.location = "Байршил заавал бөглөнө үү";
+    if (!f.year.trim()) next.year = "Он заавал бөглөнө үү";
+    if (!f.image) next.image = "Нүүр зураг upload хийнэ үү";
+    return next;
+  };
+
   const save = async () => {
-    if (!f.title.trim()) {
-      toast.error("Гарчиг оруулна уу");
-      return;
-    }
-    if (!f.type.trim() || !f.location.trim() || !f.year.trim()) {
-      toast.error("Type, байршил, он бөглөнө үү");
-      return;
-    }
-    if (!f.image) {
-      toast.error("Нүүр зураг upload хийнэ үү");
+    const found = validate();
+    if (Object.keys(found).length > 0) {
+      setErrors(found);
+      const firstMsg = Object.values(found)[0];
+      toast.error(firstMsg || "Талбаруудыг шалгана уу");
       return;
     }
 
+    setErrors({});
     setSaving(true);
     const payload: ProjectPayload = {
       title: f.title.trim(),
@@ -197,6 +229,14 @@ export default function ProjectDialog({
             </DialogTitle>
           </div>
 
+          {/* Ерөнхий алдааны мэдэгдэл */}
+          {Object.keys(errors).length > 0 && (
+            <div className="mb-6 flex items-center gap-2 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+              <AlertCircle className="h-4 w-4 shrink-0" />
+              Доор улаанаар тэмдэглэгдсэн талбаруудыг бөглөнө үү
+            </div>
+          )}
+
           {/* Хэл сонгох — хамгийн эхэнд */}
           <div className="mb-2">
             <label className={labelCls}>
@@ -225,44 +265,69 @@ export default function ProjectDialog({
           {/* Basic fields */}
           <div className="mt-8 grid gap-6 sm:grid-cols-2">
             <div className="sm:col-span-2">
-              <label className={labelCls}>Гарчиг</label>
+              <label className={labelCls}>
+                Гарчиг
+                {!f.title.trim() && <span className="ml-1 text-red-500">*</span>}
+              </label>
               <input
                 value={f.title}
                 onChange={(e) => set("title", e.target.value)}
-                className={inputCls}
+                className={errors.title ? inputErrorCls : inputCls}
               />
+              {errors.title && (
+                <p className={errorTextCls}>{errors.title}</p>
+              )}
             </div>
             <div>
-              <label className={labelCls}>Төрөл (Type)</label>
+              <label className={labelCls}>
+                Төрөл (Type)
+                {!f.type.trim() && <span className="ml-1 text-red-500">*</span>}
+              </label>
               <input
                 value={f.type}
                 onChange={(e) => set("type", e.target.value)}
-                className={inputCls}
+                className={errors.type ? inputErrorCls : inputCls}
                 placeholder="Residential / Commercial..."
               />
+              {errors.type && <p className={errorTextCls}>{errors.type}</p>}
             </div>
             <div>
-              <label className={labelCls}>Байршил</label>
+              <label className={labelCls}>
+                Байршил
+                {!f.location.trim() && (
+                  <span className="ml-1 text-red-500">*</span>
+                )}
+              </label>
               <input
                 value={f.location}
                 onChange={(e) => set("location", e.target.value)}
-                className={inputCls}
+                className={errors.location ? inputErrorCls : inputCls}
               />
+              {errors.location && (
+                <p className={errorTextCls}>{errors.location}</p>
+              )}
             </div>
             <div>
-              <label className={labelCls}>Он</label>
+              <label className={labelCls}>
+                Он
+                {!f.year.trim() && <span className="ml-1 text-red-500">*</span>}
+              </label>
               <input
                 value={f.year}
                 onChange={(e) => set("year", e.target.value)}
-                className={inputCls}
+                className={errors.year ? inputErrorCls : inputCls}
                 placeholder="2026"
               />
+              {errors.year && <p className={errorTextCls}>{errors.year}</p>}
             </div>
           </div>
 
           {/* Cover image */}
           <div className="mt-8">
-            <label className={labelCls}>Нүүр зураг</label>
+            <label className={labelCls}>
+              Нүүр зураг
+              {!f.image && <span className="ml-1 text-red-500">*</span>}
+            </label>
             <div className="flex items-center gap-4">
               {f.image ? (
                 <div className="relative h-24 w-36 overflow-hidden rounded-md border border-neutral-200">
@@ -281,7 +346,13 @@ export default function ProjectDialog({
                   </button>
                 </div>
               ) : (
-                <div className="flex h-24 w-36 items-center justify-center rounded-md border border-dashed border-neutral-300 text-neutral-300">
+                <div
+                  className={`flex h-24 w-36 items-center justify-center rounded-md border border-dashed text-neutral-300 ${
+                    errors.image
+                      ? "border-red-400 bg-red-50/40"
+                      : "border-neutral-300"
+                  }`}
+                >
                   <ImagePlus className="h-6 w-6" />
                 </div>
               )}
@@ -306,24 +377,25 @@ export default function ProjectDialog({
                 onChange={(e) => handleCoverUpload(e.target.files?.[0])}
               />
             </div>
+            {errors.image && <p className={errorTextCls}>{errors.image}</p>}
           </div>
 
-          {/* Description — сонгосон хэлээр */}
+          {/* Description — хоёр editor-ыг хамт mount хийж, CSS-ээр л нуух/харуулах */}
           <div className="mt-8 border-t border-neutral-200 pt-8">
-            <label className={labelCls}>
-              Тайлбар ({lang === "mn" ? "Монгол" : "English"})
-            </label>
-            {lang === "mn" ? (
+            <div className={lang === "mn" ? "block" : "hidden"}>
+              <label className={labelCls}>Тайлбар (Монгол)</label>
               <RichTextEditor
                 value={f.descriptionMn}
                 onChange={(html) => set("descriptionMn", html)}
               />
-            ) : (
+            </div>
+            <div className={lang === "en" ? "block" : "hidden"}>
+              <label className={labelCls}>Тайлбар (English)</label>
               <RichTextEditor
                 value={f.descriptionEn}
                 onChange={(html) => set("descriptionEn", html)}
               />
-            )}
+            </div>
           </div>
 
           {/* Detail block */}

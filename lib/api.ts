@@ -86,6 +86,10 @@ export async function getNewsAdmin(): Promise<NewsItem[]> {
   return request("/api/news", {}, true); // admin token optionalAuth-аар draft-ууд ч ирнэ
 }
 
+export async function getNewsById(idOrSlug: string): Promise<NewsItem> {
+  return request(`/api/news/${idOrSlug}`, {}, true);
+}
+
 export async function createNews(payload: NewsPayload): Promise<NewsItem> {
   return request(
     "/api/news",

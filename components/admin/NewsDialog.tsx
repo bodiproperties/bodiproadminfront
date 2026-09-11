@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { AlertCircle } from "lucide-react";
 import {
   createNews,
   updateNews,
@@ -30,6 +31,10 @@ const empty = {
   publishedAt: "",
 };
 
+type FieldErrors = {
+  title?: string;
+};
+
 const STATUS_OPTIONS: { value: Status; label: string; hint: string }[] = [
   { value: "draft", label: "Ноорог", hint: "Нийтэд харагдахгүй" },
   { value: "published", label: "Нийтлэх", hint: "Нийтэд ил" },
@@ -45,6 +50,8 @@ function toLocalInput(iso: string | null): string {
 
 const inputCls =
   "w-full border-0 border-b border-neutral-300 bg-transparent py-2 text-sm text-neutral-900 placeholder:text-neutral-300 transition-colors focus:border-neutral-900 focus:outline-none";
+const inputErrorCls =
+  "w-full border-0 border-b-2 border-red-500 bg-red-50/40 py-2 text-sm text-neutral-900 placeholder:text-neutral-300 transition-colors focus:border-red-600 focus:outline-none";
 const labelCls =
   "block text-[10px] uppercase tracking-[0.25em] text-neutral-400 mb-2";
 
@@ -59,6 +66,7 @@ export default function NewsDialog({
   const [confirmClose, setConfirmClose] = useState(false);
   const [saving, setSaving] = useState(false);
   const [lang, setLang] = useState<"en" | "mn">("mn");
+  const [errors, setErrors] = useState<FieldErrors>({});
 
   useEffect(() => {
     if (!open) return;
@@ -85,15 +93,20 @@ export default function NewsDialog({
       : empty;
 
     setF(next);
-    setBaseline(JSON.stringify(next)); // цэвэр эхлэлийг тэмдэглэнэ
+    setBaseline(JSON.stringify(next));
+    setErrors({});
   }, [open, initial]);
 
-  const set = <K extends keyof typeof empty>(k: K, v: (typeof empty)[K]) =>
+  const set = <K extends keyof typeof empty>(k: K, v: (typeof empty)[K]) => {
     setF((p) => ({ ...p, [k]: v }));
+    // Гарчиг талбар дахин бичиж эхлэхэд алдааг шууд арилгана
+    if ((k === "titleEn" || k === "titleMn") && errors.title) {
+      setErrors((e) => ({ ...e, title: undefined }));
+    }
+  };
 
   const isDirty = () => JSON.stringify(f) !== baseline;
 
-  // X / Esc / backdrop / Болих бүгд эндээс дамжина
   const requestClose = () => {
     if (isDirty()) {
       setConfirmClose(true);
@@ -102,11 +115,25 @@ export default function NewsDialog({
     }
   };
 
-  const save = async () => {
+  const validate = (): FieldErrors => {
+    const next: FieldErrors = {};
     if (!f.titleEn.trim() && !f.titleMn.trim()) {
-      toast.error("Дор хаяж нэг хэлээр гарчиг оруулна уу");
+      next.title = "Дор хаяж нэг хэлээр гарчиг заавал бөглөнө үү";
+    }
+    return next;
+  };
+
+  const save = async () => {
+    const found = validate();
+    if (Object.keys(found).length > 0) {
+      setErrors(found);
+      // Алдаатай хэлний tab руу шилжvvлж, юу дутуу байгааг шууд харуулна
+      if (!f.titleMn.trim() && !f.titleEn.trim()) setLang("mn");
+      toast.error(found.title || "Талбаруудыг шалгана уу");
       return;
     }
+
+    setErrors({});
     setSaving(true);
 
     const payload: NewsPayload = {
@@ -153,35 +180,62 @@ export default function NewsDialog({
             </p>
           </div>
 
+          {/* Ерөнхий алдааны мэдэгдэл — save дараад алдаатай бол дээд талд харагдана */}
+          {errors.title && (
+            <div className="mb-6 flex items-center gap-2 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+              <AlertCircle className="h-4 w-4 shrink-0" />
+              {errors.title}
+            </div>
+          )}
+
           {/* Language tabs */}
-          <div className="mt-10 flex gap-8 border-b border-neutral-200">
-            {(["en", "mn"] as const).map((l) => (
-              <button
-                key={l}
-                type="button"
-                onClick={() => setLang(l)}
-                className={`relative pb-3 text-xs uppercase tracking-[0.2em] transition-colors ${
-                  lang === l
-                    ? "text-neutral-900"
-                    : "text-neutral-400 hover:text-neutral-900"
-                }`}
-              >
-                {l === "en" ? "English" : "Монгол"}
-                {lang === l && (
-                  <span className="absolute bottom-0 left-0 h-px w-full bg-[#F58220]" />
-                )}
-              </button>
-            ))}
+          <div className="mt-2 flex gap-8 border-b border-neutral-200">
+            {(["en", "mn"] as const).map((l) => {
+              const tabHasError =
+                errors.title &&
+                ((l === "en" && !f.titleEn.trim()) ||
+                  (l === "mn" && !f.titleMn.trim()));
+              return (
+                <button
+                  key={l}
+                  type="button"
+                  onClick={() => setLang(l)}
+                  className={`relative flex items-center gap-1.5 pb-3 text-xs uppercase tracking-[0.2em] transition-colors ${
+                    lang === l
+                      ? "text-neutral-900"
+                      : "text-neutral-400 hover:text-neutral-900"
+                  }`}
+                >
+                  {l === "en" ? "English" : "Монгол"}
+                  {tabHasError && (
+                    <span className="h-1.5 w-1.5 rounded-full bg-red-500" />
+                  )}
+                  {lang === l && (
+                    <span
+                      className={`absolute bottom-0 left-0 h-px w-full ${
+                        tabHasError ? "bg-red-500" : "bg-[#F58220]"
+                      }`}
+                    />
+                  )}
+                </button>
+              );
+            })}
           </div>
 
           {/* EN */}
           <div className={lang === "en" ? "block pt-6" : "hidden"}>
             <div className="mb-6">
-              <label className={labelCls}>Title (EN)</label>
+              <label className={labelCls}>
+                Title (EN)
+                {!f.titleMn.trim() && (
+                  <span className="ml-1 text-red-500">*</span>
+                )}
+              </label>
               <input
                 value={f.titleEn}
                 onChange={(e) => set("titleEn", e.target.value)}
-                className={inputCls}
+                className={errors.title ? inputErrorCls : inputCls}
+                placeholder="News title in English"
               />
             </div>
             <label className={labelCls}>Description (EN)</label>
@@ -194,11 +248,17 @@ export default function NewsDialog({
           {/* MN */}
           <div className={lang === "mn" ? "block pt-6" : "hidden"}>
             <div className="mb-6">
-              <label className={labelCls}>Гарчиг (MN)</label>
+              <label className={labelCls}>
+                Гарчиг (MN)
+                {!f.titleEn.trim() && (
+                  <span className="ml-1 text-red-500">*</span>
+                )}
+              </label>
               <input
                 value={f.titleMn}
                 onChange={(e) => set("titleMn", e.target.value)}
-                className={inputCls}
+                className={errors.title ? inputErrorCls : inputCls}
+                placeholder="Мэдээний гарчиг"
               />
             </div>
             <label className={labelCls}>Агуулга (MN)</label>
