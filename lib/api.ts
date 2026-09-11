@@ -52,19 +52,18 @@ export async function login(email: string, password: string) {
 /* projects */
 export const getProjects = () => request("/api/projects");
 export const getProjectsAdmin = () => request("/api/projects", {}, true);
-export const getProject = (id: number | string) =>
-  request(`/api/projects/${id}`);
+export const getProject = (id: string) => request(`/api/projects/${id}`);
 export const createProject = (b: ProjectPayload) =>
   request("/api/projects", { method: "POST", body: JSON.stringify(b) }, true);
-export const updateProject = (id: number, b: Partial<ProjectPayload>) =>
+export const updateProject = (id: string, b: Partial<ProjectPayload>) =>
   request(
     `/api/projects/${id}`,
     { method: "PUT", body: JSON.stringify(b) },
     true,
   );
-export const deleteProject = (id: number) =>
+export const deleteProject = (id: string) =>
   request(`/api/projects/${id}`, { method: "DELETE" }, true);
-export const restoreProject = (id: number) =>
+export const restoreProject = (id: string) =>
   request(`/api/projects/${id}/restore`, { method: "POST" }, true);
 
 /* single image upload (cover / gallery items) */
@@ -148,7 +147,7 @@ export const deleteHomeImage = (id: number) =>
 
 /* types */
 export type Project = {
-  id: number;
+  id: string;
   title: string;
   type: string;
   location: string;
