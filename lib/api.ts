@@ -1,4 +1,4 @@
-// Set NEXT_PUBLIC_API_URL in .env.local (e.g. http://localhost:4000)
+// Set NEXT_PUBLIC_API_URL in .env.local (e.g. http://localhost:4000) — /api-гүй
 
 const API_BASE =
   (process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000").replace(/\/$/, "");
@@ -67,9 +67,51 @@ export const restoreProject = (id: string) =>
   request(`/api/projects/${id}/restore`, { method: "POST" }, true);
 
 /* single image upload (cover / gallery items) */
+
+/**
+ * Upload хийхээс өмнө зургийг browser дээр шахна.
+ * Утасны 4000px, 8MB зураг → 2400px, ~400KB JPEG.
+ * Вэб дээр зураг хурдан ачаалагдаж, Azure storage хэмнэгдэнэ.
+ */
+async function compressForUpload(
+  file: File,
+  maxSize = 2400,
+  quality = 0.85,
+): Promise<Blob> {
+  // GIF/SVG-г хөндөхгүй (animation, вектор алдагдана)
+  if (!/^image\/(jpeg|png|webp)$/.test(file.type)) return file;
+
+  const bitmap = await createImageBitmap(file).catch(() => null);
+  if (!bitmap) return file;
+
+  const scale = Math.min(1, maxSize / Math.max(bitmap.width, bitmap.height));
+  const w = Math.round(bitmap.width * scale);
+  const h = Math.round(bitmap.height * scale);
+
+  const canvas = document.createElement("canvas");
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return file;
+  ctx.fillStyle = "#fff"; // PNG-ийн тунгалаг хэсэг хар болохгүй
+  ctx.fillRect(0, 0, w, h);
+  ctx.drawImage(bitmap, 0, 0, w, h);
+  bitmap.close();
+
+  const blob = await new Promise<Blob | null>((r) =>
+    canvas.toBlob(r, "image/jpeg", quality),
+  );
+  // Шахсан нь том болчихвол эх файлаа үлдээнэ
+  return blob && blob.size < file.size ? blob : file;
+}
+
 export async function uploadImage(file: File): Promise<string> {
+  const blob = await compressForUpload(file);
+  const name =
+    blob === file ? file.name : file.name.replace(/\.[^.]+$/, "") + ".jpg";
+
   const fd = new FormData();
-  fd.append("file", file);
+  fd.append("file", blob, name);
   const res = await fetch(`${API_BASE}/api/upload`, {
     method: "POST",
     headers: { Authorization: `Bearer ${getToken()}` },
@@ -146,6 +188,18 @@ export const deleteHomeImage = (id: number) =>
   request(`/api/home-images/${id}`, { method: "DELETE" }, true);
 
 /* types */
+
+// detail нь backend дээр jsonb — шинэ талбар нэмэхэд DB өөрчлөх шаардлагагүй
+export type ProjectDetail = {
+  client: string;
+  area: string;
+  status: string;
+  services: string[];
+  category?: string; // Interior | Apartment | Office | Garden | Construction
+  gallery?: string[]; // зургийн URL-ууд
+  lang?: "en" | "mn"; // web дээр аль хэлээр харагдах
+};
+
 export type Project = {
   id: string;
   title: string;
@@ -154,7 +208,7 @@ export type Project = {
   year: string;
   image: string;
   description: { en: string; mn: string };
-  detail: { client: string; area: string; status: string; services: string[] };
+  detail: ProjectDetail;
   sortOrder?: number;
   status: "draft" | "published" | "hidden";
   publishedAt: string | null;
@@ -168,12 +222,7 @@ export interface ProjectPayload {
   image: string;
   descriptionEn?: string;
   descriptionMn?: string;
-  detail?: {
-    client: string;
-    area: string;
-    status: string;
-    services: string[];
-  };
+  detail?: ProjectDetail;
   sortOrder?: number;
   status?: "draft" | "published" | "hidden";
   publishedAt?: string | null;

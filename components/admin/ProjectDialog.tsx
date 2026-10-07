@@ -2,7 +2,14 @@
 
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { X, ImagePlus, Loader2, AlertCircle } from "lucide-react";
+import {
+  X,
+  ImagePlus,
+  Loader2,
+  AlertCircle,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
 import {
   createProject,
   updateProject,
@@ -22,6 +29,7 @@ interface Props {
 }
 
 type PublishStatus = "draft" | "published" | "hidden";
+type Lang = "mn" | "en";
 
 const PUBLISH_OPTIONS: { value: PublishStatus; label: string; hint: string }[] =
   [
@@ -29,6 +37,16 @@ const PUBLISH_OPTIONS: { value: PublishStatus; label: string; hint: string }[] =
     { value: "published", label: "Нийтлэх", hint: "Нийтэд ил" },
     { value: "hidden", label: "Идэвхгүй болгох", hint: "Түр буулгасан" },
   ];
+
+// Web-ийн tab-уудтай яг ижил утгууд (value-г өөрчилж болохгүй)
+const CATEGORY_OPTIONS = [
+  { value: "", label: "Ангилалгүй" },
+  { value: "Interior", label: "Дотор засал" },
+  { value: "Apartment", label: "Орон сууц" },
+  { value: "Office", label: "Оффис" },
+  { value: "Garden", label: "Ландшафт" },
+  { value: "Construction", label: "Барилга" },
+];
 
 function toLocalInput(iso: string | null): string {
   if (!iso) return "";
@@ -49,6 +67,8 @@ const empty = {
   area: "",
   status: "",
   services: [] as string[],
+  category: "",
+  gallery: [] as string[],
   publishStatus: "draft" as PublishStatus,
   publishedAt: "",
 };
@@ -68,6 +88,8 @@ const inputErrorCls =
 const labelCls =
   "block text-[10px] uppercase tracking-[0.25em] text-neutral-400 mb-2";
 const errorTextCls = "mt-1.5 text-xs text-red-600";
+const ghostBtnCls =
+  "inline-flex items-center gap-2 border border-neutral-300 px-4 py-2 text-[11px] uppercase tracking-[0.2em] text-neutral-600 transition-colors hover:border-[#F17B2C] hover:text-white hover:bg-[#F17B2C] disabled:opacity-50 cursor-pointer";
 
 export default function ProjectDialog({
   open,
@@ -79,22 +101,26 @@ export default function ProjectDialog({
   const [baseline, setBaseline] = useState("");
   const [confirmClose, setConfirmClose] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [lang, setLang] = useState<"en" | "mn">("mn");
+  const [lang, setLang] = useState<Lang>("mn");
   const [serviceInput, setServiceInput] = useState("");
   const [coverUploading, setCoverUploading] = useState(false);
+  const [galleryUploading, setGalleryUploading] = useState(0);
   const [errors, setErrors] = useState<FieldErrors>({});
 
   const coverInputRef = useRef<HTMLInputElement>(null);
+  const galleryInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!open) return;
     setServiceInput("");
     setErrors({});
 
+    // Хэл: хадгалсан detail.lang → эс бол бөглөгдсөн тайлбараар → default MN
     if (initial) {
+      const saved = initial.detail?.lang;
       const hasMn = !!initial.description?.mn;
       const hasEn = !!initial.description?.en;
-      if (hasMn && !hasEn) setLang("mn");
+      if (saved === "en" || saved === "mn") setLang(saved);
       else if (hasEn && !hasMn) setLang("en");
       else setLang("mn");
     } else {
@@ -114,13 +140,15 @@ export default function ProjectDialog({
           area: initial.detail?.area || "",
           status: initial.detail?.status || "",
           services: initial.detail?.services || [],
+          category: initial.detail?.category || "",
+          gallery: initial.detail?.gallery || [],
           publishStatus: (initial.status as PublishStatus) || "draft",
           publishedAt: toLocalInput(initial.publishedAt),
         }
       : empty;
 
     setF(next);
-    setBaseline(JSON.stringify(next));
+    setBaseline(JSON.stringify({ ...next, lang: initial?.detail?.lang }));
   }, [open, initial]);
 
   const set = <K extends keyof typeof empty>(k: K, v: (typeof empty)[K]) => {
@@ -130,13 +158,16 @@ export default function ProjectDialog({
     }
   };
 
-  const isDirty = () => JSON.stringify(f) !== baseline;
+  const isDirty = () =>
+    JSON.stringify({ ...f, lang: initial?.detail?.lang }) !== baseline ||
+    (initial ? (initial.detail?.lang ?? lang) !== lang : false);
 
   const requestClose = () => {
     if (isDirty()) setConfirmClose(true);
     else onOpenChange(false);
   };
 
+  // ---------- Cover ----------
   const handleCoverUpload = async (file?: File) => {
     if (!file) return;
     setCoverUploading(true);
@@ -151,6 +182,39 @@ export default function ProjectDialog({
     }
   };
 
+  // ---------- Gallery ----------
+  const handleGalleryUpload = async (files: FileList | null) => {
+    if (!files?.length) return;
+    const list = Array.from(files);
+    setGalleryUploading((n) => n + list.length);
+    for (const file of list) {
+      try {
+        const url = await uploadImage(file);
+        setF((p) => ({ ...p, gallery: [...p.gallery, url] }));
+      } catch (e: any) {
+        toast.error(e.message || `${file.name} upload хийхэд алдаа гарлаа`);
+      } finally {
+        setGalleryUploading((n) => n - 1);
+      }
+    }
+    if (galleryInputRef.current) galleryInputRef.current.value = "";
+  };
+
+  const removeGallery = (i: number) =>
+    set(
+      "gallery",
+      f.gallery.filter((_, idx) => idx !== i),
+    );
+
+  const moveGallery = (i: number, dir: -1 | 1) => {
+    const j = i + dir;
+    if (j < 0 || j >= f.gallery.length) return;
+    const next = [...f.gallery];
+    [next[i], next[j]] = [next[j], next[i]];
+    set("gallery", next);
+  };
+
+  // ---------- Services ----------
   const addService = () => {
     const v = serviceInput.trim();
     if (!v) return;
@@ -163,6 +227,7 @@ export default function ProjectDialog({
       f.services.filter((s) => s !== v),
     );
 
+  // ---------- Save ----------
   const validate = (): FieldErrors => {
     const next: FieldErrors = {};
     if (!f.title.trim()) next.title = "Гарчиг заавал бөглөнө үү";
@@ -174,11 +239,15 @@ export default function ProjectDialog({
   };
 
   const save = async () => {
+    if (coverUploading || galleryUploading > 0) {
+      toast.error("Зураг upload хийгдэж дуусахыг хүлээнэ үү");
+      return;
+    }
+
     const found = validate();
     if (Object.keys(found).length > 0) {
       setErrors(found);
-      const firstMsg = Object.values(found)[0];
-      toast.error(firstMsg || "Талбаруудыг шалгана уу");
+      toast.error(Object.values(found)[0] || "Талбаруудыг шалгана уу");
       return;
     }
 
@@ -197,6 +266,10 @@ export default function ProjectDialog({
         area: f.area.trim(),
         status: f.status.trim(),
         services: f.services,
+        category: f.category,
+        gallery: f.gallery,
+        // Web дээр зөвхөн энэ хэлээр сонгосон үед харагдана
+        lang,
       },
       status: f.publishStatus,
       publishedAt: f.publishedAt ? new Date(f.publishedAt).toISOString() : null,
@@ -205,7 +278,7 @@ export default function ProjectDialog({
     try {
       if (initial?.id) await updateProject(initial.id, payload);
       else await createProject(payload);
-      toast.success(initial ? "Project шинэчлэгдлээ" : "Project үүсгэгдлээ");
+      toast.success(initial ? "Төсөл шинэчлэгдлээ" : "Төсөл үүсгэгдлээ");
       onOpenChange(false);
       onSaved();
     } catch (e: any) {
@@ -225,7 +298,7 @@ export default function ProjectDialog({
               Төсөл
             </p>
             <DialogTitle className="mt-3 text-3xl font-extralight tracking-tight text-neutral-900">
-              {initial ? "Төслийн мэдээллийг засах" : "Шинэ төслийн мэдээ"}
+              {initial ? "Төслийн мэдээллийг засах" : "Шинэ төсөл"}
             </DialogTitle>
           </div>
 
@@ -237,7 +310,7 @@ export default function ProjectDialog({
             </div>
           )}
 
-          {/* Хэл сонгох — хамгийн эхэнд */}
+          {/* Хэл сонгох */}
           <div className="mb-2">
             <label className={labelCls}>
               Ямар хэл дээр мэдээлэл оруулах вэ?
@@ -260,6 +333,14 @@ export default function ProjectDialog({
                 </button>
               ))}
             </div>
+            <p className="mt-2 text-[11px] text-neutral-400">
+              Энэ төсөл вэб дээр зөвхөн{" "}
+              <span className="font-medium text-neutral-600">
+                {lang === "mn" ? "MN" : "EN"}
+              </span>{" "}
+              хэл сонгосон үед харагдана. Нөгөө хэлээр харуулах бол тусад нь
+              шинэ төсөл үүсгэнэ үү.
+            </p>
           </div>
 
           {/* Basic fields */}
@@ -274,9 +355,7 @@ export default function ProjectDialog({
                 onChange={(e) => set("title", e.target.value)}
                 className={errors.title ? inputErrorCls : inputCls}
               />
-              {errors.title && (
-                <p className={errorTextCls}>{errors.title}</p>
-              )}
+              {errors.title && <p className={errorTextCls}>{errors.title}</p>}
             </div>
             <div>
               <label className={labelCls}>
@@ -320,6 +399,20 @@ export default function ProjectDialog({
               />
               {errors.year && <p className={errorTextCls}>{errors.year}</p>}
             </div>
+            <div>
+              <label className={labelCls}>Ангилал (вэбийн tab)</label>
+              <select
+                value={f.category}
+                onChange={(e) => set("category", e.target.value)}
+                className={`${inputCls} cursor-pointer`}
+              >
+                {CATEGORY_OPTIONS.map((o) => (
+                  <option key={o.value} value={o.value}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
 
           {/* Cover image */}
@@ -340,7 +433,8 @@ export default function ProjectDialog({
                   <button
                     type="button"
                     onClick={() => set("image", "")}
-                    className="absolute right-1 top-1 rounded-full bg-black/60 p-1 text-white hover:bg-red-600"
+                    aria-label="Нүүр зураг устгах"
+                    className="absolute right-1 top-1 cursor-pointer rounded-full bg-black/60 p-1 text-white hover:bg-red-600"
                   >
                     <X className="h-3 w-3" />
                   </button>
@@ -360,7 +454,7 @@ export default function ProjectDialog({
                 type="button"
                 disabled={coverUploading}
                 onClick={() => coverInputRef.current?.click()}
-                className="inline-flex items-center gap-2 border border-neutral-300 px-4 py-2 text-[11px] uppercase tracking-[0.2em] text-neutral-600 transition-colors hover:border-[#F17B2C] hover:text-white hover:bg-[#F17B2C] disabled:opacity-50 cursor-pointer"
+                className={ghostBtnCls}
               >
                 {coverUploading ? (
                   <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -378,6 +472,95 @@ export default function ProjectDialog({
               />
             </div>
             {errors.image && <p className={errorTextCls}>{errors.image}</p>}
+          </div>
+
+          {/* Gallery */}
+          <div className="mt-8">
+            <div className="mb-3 flex items-end justify-between gap-4">
+              <div>
+                <label className={`${labelCls} mb-1`}>Gallery зургууд</label>
+                <p className="text-[11px] text-neutral-400">
+                  Төслийн дэлгэрэнгүй хуудсанд нүүр зургийн дараа харагдана.
+                  Сумаар дарааллыг өөрчилнө.
+                </p>
+              </div>
+              <button
+                type="button"
+                disabled={galleryUploading > 0}
+                onClick={() => galleryInputRef.current?.click()}
+                className={`${ghostBtnCls} shrink-0`}
+              >
+                {galleryUploading > 0 ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <ImagePlus className="h-3.5 w-3.5" />
+                )}
+                {galleryUploading > 0
+                  ? `Upload (${galleryUploading})`
+                  : "Зураг нэмэх"}
+              </button>
+              <input
+                ref={galleryInputRef}
+                type="file"
+                accept="image/*"
+                multiple
+                className="hidden"
+                onChange={(e) => handleGalleryUpload(e.target.files)}
+              />
+            </div>
+
+            {f.gallery.length === 0 ? (
+              <div className="flex h-24 items-center justify-center rounded-md border border-dashed border-neutral-300 text-[11px] uppercase tracking-[0.2em] text-neutral-300">
+                Gallery хоосон
+              </div>
+            ) : (
+              <div className="grid grid-cols-3 gap-3 sm:grid-cols-5">
+                {f.gallery.map((url, i) => (
+                  <div
+                    key={url}
+                    className="group relative aspect-[4/3] overflow-hidden rounded-md border border-neutral-200 bg-neutral-100"
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={url}
+                      alt=""
+                      className="h-full w-full object-cover"
+                    />
+                    <span className="absolute left-1.5 top-1.5 rounded bg-black/60 px-1.5 py-0.5 font-mono text-[10px] text-white">
+                      {String(i + 1).padStart(2, "0")}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => removeGallery(i)}
+                      aria-label="Зураг устгах"
+                      className="absolute right-1.5 top-1.5 cursor-pointer rounded-full bg-black/60 p-1 text-white opacity-0 transition-opacity hover:bg-red-600 group-hover:opacity-100"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                    <div className="absolute inset-x-1.5 bottom-1.5 flex justify-between opacity-0 transition-opacity group-hover:opacity-100">
+                      <button
+                        type="button"
+                        onClick={() => moveGallery(i, -1)}
+                        disabled={i === 0}
+                        aria-label="Өмнө нь"
+                        className="cursor-pointer rounded bg-black/60 p-1 text-white hover:bg-neutral-900 disabled:opacity-30"
+                      >
+                        <ChevronLeft className="h-3 w-3" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => moveGallery(i, 1)}
+                        disabled={i === f.gallery.length - 1}
+                        aria-label="Дараа нь"
+                        className="cursor-pointer rounded bg-black/60 p-1 text-white hover:bg-neutral-900 disabled:opacity-30"
+                      >
+                        <ChevronRight className="h-3 w-3" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Description — хоёр editor-ыг хамт mount хийж, CSS-ээр л нуух/харуулах */}
@@ -423,7 +606,7 @@ export default function ProjectDialog({
                 value={f.status}
                 onChange={(e) => set("status", e.target.value)}
                 className={inputCls}
-                placeholder="Дуусгасан / Барилгалж байгаа"
+                placeholder={lang === "mn" ? "Дууссан / Баригдаж байгаа" : "Completed / In progress"}
               />
             </div>
           </div>
@@ -441,7 +624,8 @@ export default function ProjectDialog({
                   <button
                     type="button"
                     onClick={() => removeService(s)}
-                    className="text-neutral-400 hover:text-red-600"
+                    aria-label={`${s} устгах`}
+                    className="cursor-pointer text-neutral-400 hover:text-red-600"
                   >
                     <X className="h-3 w-3" />
                   </button>
@@ -458,13 +642,17 @@ export default function ProjectDialog({
                     addService();
                   }
                 }}
-                placeholder="Жишээ: Architecture, Interior Design..."
+                placeholder={
+                  lang === "mn"
+                    ? "Жишээ: Архитектур, Дотор засал..."
+                    : "e.g. Architecture, Interior Design..."
+                }
                 className={inputCls}
               />
               <button
                 type="button"
                 onClick={addService}
-                className="shrink-0 border border-neutral-300 px-4 text-[11px] uppercase tracking-[0.2em] text-neutral-600 transition-colors hover:border-[#F17B2C] hover:text-white hover:bg-[#F17B2C] cursor-pointer"
+                className="shrink-0 cursor-pointer border border-neutral-300 px-4 text-[11px] uppercase tracking-[0.2em] text-neutral-600 transition-colors hover:border-[#F17B2C] hover:bg-[#F17B2C] hover:text-white"
               >
                 Нэмэх
               </button>
@@ -496,7 +684,7 @@ export default function ProjectDialog({
                       key={opt.value}
                       type="button"
                       onClick={() => set("publishStatus", opt.value)}
-                      className={`flex-1 px-3 py-2.5 text-[11px] uppercase tracking-[0.15em] transition-colors cursor-pointer ${
+                      className={`flex-1 cursor-pointer px-3 py-2.5 text-[11px] uppercase tracking-[0.15em] transition-colors ${
                         i > 0 ? "border-l border-neutral-300" : ""
                       } ${
                         active
@@ -520,15 +708,15 @@ export default function ProjectDialog({
             <button
               type="button"
               onClick={requestClose}
-              className="px-6 py-3.5 text-[11px] uppercase tracking-[0.25em] text-neutral-500 transition-colors hover:text-[#F17B2C] cursor-pointer"
+              className="cursor-pointer px-6 py-3.5 text-[11px] uppercase tracking-[0.25em] text-neutral-500 transition-colors hover:text-[#F17B2C]"
             >
               Болих
             </button>
             <button
               type="button"
               onClick={save}
-              disabled={saving}
-              className="bg-neutral-900 px-8 py-3.5 text-[11px] uppercase tracking-[0.25em] text-white transition-colors hover:bg-[#F17B2C] disabled:opacity-50 cursor-pointer"
+              disabled={saving || coverUploading || galleryUploading > 0}
+              className="cursor-pointer bg-neutral-900 px-8 py-3.5 text-[11px] uppercase tracking-[0.25em] text-white transition-colors hover:bg-[#F17B2C] disabled:cursor-not-allowed disabled:opacity-50"
             >
               {saving ? "Хадгалж байна…" : "Хадгалах"}
             </button>
@@ -539,7 +727,7 @@ export default function ProjectDialog({
       <ConfirmDialog
         open={confirmClose}
         onOpenChange={setConfirmClose}
-        title="Project хадгалагдаагүй"
+        title="Төсөл хадгалагдаагүй"
         message="Бөглөсөн мэдээлэл хадгалагдаагүй байна. Хаавал бичсэн зүйл устах болно. Үнэхээр хаах уу?"
         confirmText="Тийм, хаах"
         cancelText="Үргэлжлүүлэх"
